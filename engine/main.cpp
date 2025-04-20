@@ -3,8 +3,6 @@
 #include <glad/glad.h>
 #include <iostream>
 
-#include <filesystem>
-
 extern "C" {
     #include <lua.h>
     #include <lualib.h>
