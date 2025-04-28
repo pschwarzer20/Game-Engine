@@ -9,6 +9,8 @@ extern "C" {
     #include <lauxlib.h>
 }
 
+#include "input.h"
+
 
 bool isRunning = false;
 lua_State* luaState;
@@ -95,22 +97,22 @@ int main(int argc, char* argv[]) {
     while (isRunning) {
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
-            case SDL_QUIT:
-                isRunning = false;
-                break;
+                case SDL_QUIT:
+                    isRunning = false;
+                    break;
 
-            case SDL_KEYUP:
-                SDL_KeyboardEvent* key;
-                key = &event.key;
-                SDL_Keysym* keysym;
-                keysym = &key->keysym;
+                case SDL_KEYUP:
+                    SDL_KeyboardEvent* key;
+                    key = &event.key;
+                    SDL_Keysym* keysym;
+                    keysym = &key->keysym;
 
-                process_input(*keysym);
+                    process_input(*keysym);
 
-                break;
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
             }
         }
 
