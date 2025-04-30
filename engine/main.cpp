@@ -69,18 +69,22 @@ int main(int argc, char* argv[]) {
     SDL_Event event;
     while (isRunning) {
         while (SDL_PollEvent(&event)) {
+            SDL_KeyboardEvent* key;
+            key = &event.key;
+            SDL_Keysym* keysym;
+            keysym = &key->keysym;
+
             switch (event.type) {
                 case SDL_QUIT:
                     isRunning = false;
                     break;
 
                 case SDL_KEYUP:
-                    SDL_KeyboardEvent* key;
-                    key = &event.key;
-                    SDL_Keysym* keysym;
-                    keysym = &key->keysym;
+                    process_input(*keysym, false, luaState);
+                    break;
 
-                    process_input(*keysym, false, *luaState);
+                case SDL_KEYDOWN:
+                    process_input(*keysym, true, luaState);
                     break;
 
                 default:
