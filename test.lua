@@ -3,6 +3,6 @@ function engine.KeyReleased(key)
     print("Released key: " .. key)
 end
 
-function engine.KeyDown(key)
-    print("Key down: " .. key)
+function engine.KeyPressed(key)
+    print("Pressed key: " .. key)
 end
