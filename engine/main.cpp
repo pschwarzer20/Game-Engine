@@ -1,7 +1,11 @@
 ﻿
 #include <SDL.h>
 #include <glad/glad.h>
+
 #include <iostream>
+#include <filesystem>
+#include <unordered_map>
+namespace fs = std::filesystem;
 
 extern "C" {
     #include <lua.h>
@@ -11,13 +15,63 @@ extern "C" {
 
 #include "input.h"
 
-
 bool isRunning = false;
 lua_State* luaState;
 
+// PLACEHOLDER
+std::unordered_map<std::string, std::filesystem::file_time_type> loadedLuaFiles;
+void loadLuaScripts(lua_State* L, const std::string& path) {
+    for (const auto& entry : fs::directory_iterator(path)) {
+        if (entry.path().extension() == ".lua") {
+            std::string filePath = entry.path().string();
+            auto lastWrite = fs::last_write_time(entry);
+
+            if (loadedLuaFiles.find(filePath) == loadedLuaFiles.end() || loadedLuaFiles[filePath] != lastWrite){
+                loadedLuaFiles[filePath] = lastWrite;
+
+                std::cout << "Loading Lua file: " << filePath << std::endl;
+                if (luaL_dofile(L, filePath.c_str()) != LUA_OK) {
+                    std::cerr << "Lua error in " << filePath << ": " << lua_tostring(L, -1) << std::endl;
+                    lua_pop(L, 1);
+                }
+            }
+        }
+    }
+}
+
+int closeGame(lua_State* L) {
+    isRunning = false;
+
+    return 0;
+}
+
 void createLuaTables() {
     lua_newtable(luaState);
+
+    // Add Close() to engine table
+    lua_pushcfunction(luaState, closeGame);
+    lua_setfield(luaState, -2, "Close");
+
     lua_setglobal(luaState, "engine");
+
+    // PLACEHOLDER
+    // Add global KEY_* constants
+    for (int scancode = 0; scancode < SDL_NUM_SCANCODES; ++scancode) {
+        const char* name = SDL_GetScancodeName(static_cast<SDL_Scancode>(scancode));
+        if (name && name[0] != '\0') {
+            std::string keyName = "KEY_";
+
+            for (int i = 0; name[i]; ++i) {
+                if (name[i] == ' ')
+                    keyName += '_';
+                else
+                    keyName += std::toupper(name[i]);
+            }
+
+            lua_pushinteger(luaState, scancode);
+            lua_setglobal(luaState, keyName.c_str());
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -54,20 +108,18 @@ int main(int argc, char* argv[]) {
 
     std::cout << "GLAD initialized!\n";
 
+    // Create Lua State
     luaState = luaL_newstate();
     luaL_openlibs(luaState);
     createLuaTables();
     std::cout << "Lua State created!\n";
 
-    if (luaL_dofile(luaState, "test.lua") != LUA_OK) {
-        const char* error = lua_tostring(luaState, -1);
-        printf("Lua error: %s\n", error);
-    }
-
     std::cout << "Running game loop...\n";
     isRunning = true;
     SDL_Event event;
     while (isRunning) {
+        loadLuaScripts(luaState, "lua");
+
         while (SDL_PollEvent(&event)) {
             SDL_KeyboardEvent* key;
             key = &event.key;
@@ -96,6 +148,8 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT);
         SDL_GL_SwapWindow(window);
     }
+
+    std::cout << "Shutting down..\n";
 
     lua_close(luaState);
 
